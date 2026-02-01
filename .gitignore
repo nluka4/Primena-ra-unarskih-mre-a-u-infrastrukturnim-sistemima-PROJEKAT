@@ -1,0 +1,12 @@
+# Visual Studio privremeni fajlovi
+.vs/
+[Bb]in/
+[Oo]bj/
+
+# User-specific fajlovi
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ostalo
+.DS_Store
