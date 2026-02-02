@@ -22,7 +22,7 @@ namespace WpfApp1
                 bitmap.UriSource = new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\teniskaLoptica.png");
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.EndInit();
-
+                SlikaLopte.Name = "loptica";
                 SlikaLopte.Source = bitmap;
             }
             catch (Exception ex)

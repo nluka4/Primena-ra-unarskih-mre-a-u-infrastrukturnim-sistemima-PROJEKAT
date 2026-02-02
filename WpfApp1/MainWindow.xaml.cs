@@ -18,6 +18,26 @@ namespace WpfApp1
             this.Width = 600;
             this.ResizeMode = ResizeMode.NoResize;
             CompositionTarget.Rendering += GameLoop;
+
+            CrtajEntitije();
+        }
+
+        private void CrtajEntitije()
+        {
+            Random rand = new Random();
+            Random randX = new Random();
+            Random randY = new Random();
+
+            int index = rand.Next(0,4);
+            double x = randX.Next(300, 560);
+            double y = randY.Next(50, 700);
+
+            Entity entity = new Entity(index);
+
+            Canvas.SetLeft(entity.SlikaEntity,x-(entity.SlikaEntity.Width/2));
+            Canvas.SetTop(entity.SlikaEntity, y - (entity.SlikaEntity.Height / 2));
+
+            radnaPovrsina.Children.Add(entity.SlikaEntity);
         }
 
         // MouseMove zahteva MouseEventArgs
@@ -47,8 +67,54 @@ namespace WpfApp1
 
             radnaPovrsina.Children.Add(novaLopta.SlikaLopte);
         }
+        private DateTime _lastTick = DateTime.Now;
 
         private void GameLoop(object sender, EventArgs e)
+        {
+            // Izračunaj koliko je vremena prošlo (u sekundama)
+            TimeSpan elapsed = DateTime.Now - _lastTick;
+            _lastTick = DateTime.Now;
+            double seconds = elapsed.TotalSeconds;
+
+            // Definiši brzinu (pikseli po sekundi)
+            double lopticaBrzina = 400; // 400px u sekundi
+            double entityBrzina = 100;  // 100px u sekundi
+
+            foreach (var x in radnaPovrsina.Children.OfType<Image>().ToList())
+            {
+                double top = Canvas.GetTop(x);
+                if (double.IsNaN(top)) continue;
+
+                if (x.Name == "loptica")
+                {
+                    // Pomeraj zavisi od vremena: brzina * sekunde
+                    Canvas.SetTop(x, top - (lopticaBrzina * seconds));
+
+                    if (top < -50) radnaPovrsina.Children.Remove(x);
+                }
+                else if (x.Name == "entity")
+                {
+                    Canvas.SetTop(x, top + (entityBrzina * seconds));
+
+                    if (top > 750) radnaPovrsina.Children.Remove(x);
+                }
+            }
+        }
+
+    }
+}
+//System.Windows.Shapes.Ellipse testKrug = new System.Windows.Shapes.Ellipse();
+//testKrug.Width = 20;
+//testKrug.Height = 20;
+//testKrug.Fill = Brushes.Red;
+//Canvas.SetLeft(testKrug, e.GetPosition(radnaPovrsina).X);
+//Canvas.SetTop(testKrug, e.GetPosition(radnaPovrsina).Y);
+//radnaPovrsina.Children.Add(testKrug);
+
+
+
+/*
+ private void GameLoop(object sender, EventArgs e)
         {
             // Prolazimo kroz sve elemente na Canvasu
             // Koristimo .ToList() da bismo mogli bezbedno da brišemo objekte iz kolekcije dok prolazimo kroz nju
@@ -56,7 +122,7 @@ namespace WpfApp1
             {
                 // Želimo da pomeramo samo loptice, a ne i igrača
                 // Možemo ih razlikovati po tome što igrač ima Name="player"
-                if (x.Name != "player")
+                if (x.Name == "loptica")
                 {
                     // Uzmi trenutnu Y poziciju
                     double trenutniTop = Canvas.GetTop(x);
@@ -71,14 +137,17 @@ namespace WpfApp1
                         radnaPovrsina.Children.Remove(x);
                     }
                 }
+
+                if(x.Name == "entity")
+                {
+                    double trenutniTop = Canvas.GetTop(x);
+                    Canvas.SetTop(x, trenutniTop + 0.1);
+                    if(trenutniTop > 600)
+                    {
+                        radnaPovrsina.Children.Remove(x);
+                    }
+                }
             }
         }
-    }
-}
-            //System.Windows.Shapes.Ellipse testKrug = new System.Windows.Shapes.Ellipse();
-            //testKrug.Width = 20;
-            //testKrug.Height = 20;
-            //testKrug.Fill = Brushes.Red;
-            //Canvas.SetLeft(testKrug, e.GetPosition(radnaPovrsina).X);
-            //Canvas.SetTop(testKrug, e.GetPosition(radnaPovrsina).Y);
-            //radnaPovrsina.Children.Add(testKrug);
+ 
+ */
