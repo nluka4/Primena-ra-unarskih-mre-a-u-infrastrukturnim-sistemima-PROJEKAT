@@ -1,23 +1,29 @@
 ﻿<Window x:Class="WpfApp1.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp1"
-        mc:Ignorable="d"
-        Title="Nole Space Invaders" >
-    <Canvas Name="radnaPovrsina"  MouseMove="PlayerMovement"  MouseDown="Pucaj">
+        Title="Nole Space Invaders" Height="750" Width="600">
+
+    <Canvas Name="radnaPovrsina" MouseMove="PlayerMovement" MouseDown="Pucaj">
+
         <Canvas.Background>
             <ImageBrush Stretch="UniformToFill" ImageSource="C:\Users\nluka\OneDrive\Desktop\mrezeProjekat\WpfApp1\WpfApp1\src\backgroundjpg.jpg" />
         </Canvas.Background>
-        <TextBlock  FontSize="50" Foreground="white" Cursor="None">
-            X:<Label Name="Xkoord" Height="53" VerticalAlignment="Center" Padding="0" FontSize="50" Foreground="white" RenderTransformOrigin="0.618,0.572">0</Label>
+
+        <TextBlock FontSize="50" Foreground="White" IsHitTestVisible="False" HorizontalAlignment="Center" Height="65" VerticalAlignment="Top">
+            X:<Label Name="Xkoord" FontSize="50" Foreground="White">0</Label>
         </TextBlock>
-        <TextBlock Margin="0 53 0 0" FontSize="50" Foreground="white">
-            Y:<Label Name="Ykoord" Height="55" VerticalAlignment="Center" Padding="0" FontSize="50" Foreground="white" RenderTransformOrigin="0.618,0.572">0</Label>
+        <TextBlock Margin="0 53 0 0" FontSize="50" Foreground="White" IsHitTestVisible="False">
+            Y:<Label Name="Ykoord" FontSize="50" Foreground="White" Height="64">0</Label>
         </TextBlock>
 
-        <Image Stretch="Uniform" Name="player" Source="/igrac.png" HorizontalAlignment="Left" Height="64" VerticalAlignment="Top" Width="100"/>
-        <Label Content="Score: 0" HorizontalAlignment="Left" Margin="10,548,0,0" VerticalAlignment="Top" FontSize="14" FontWeight="Bold" Background="{x:Null}" Foreground="White" AutomationProperties.Name="txtScore"/>
+        <Label Name="txtScore" Content="Score: 0" Canvas.Bottom="10" Canvas.Left="10" 
+               FontSize="20" FontWeight="Bold" Foreground="White"/>
+
+        <StackPanel Name="gameOverPanel" Visibility="Collapsed" 
+                    Canvas.Left="150" Canvas.Top="250" HorizontalAlignment="Center">
+            <TextBlock Text="GAME OVER" FontSize="60" Foreground="Red" FontWeight="Bold"/>
+            <Button Cursor="Hand" Content="Try Again" Padding="10" FontSize="20" Click="RestartGame" Margin="0 20 0 0"/>
+        </StackPanel>
+
     </Canvas>
 </Window>
