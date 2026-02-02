@@ -35,6 +35,10 @@ namespace WpfApp1
                 bitmapEntity.EndInit();
 
                 SlikaEntity.Name = "entity";
+                if(index == 3)
+                {
+                    SlikaEntity.Name = "propaliTeniser";
+                }
                 SlikaEntity.Source = bitmapEntity;
             }
             catch (Exception ex)

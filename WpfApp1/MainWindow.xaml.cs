@@ -6,11 +6,18 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+
 
 namespace WpfApp1
 {
     public partial class MainWindow : Window
     {
+
+        private MediaPlayer soundPlayer = new MediaPlayer();
+        private MediaPlayer soundHit = new MediaPlayer();
+        private MediaPlayer soundPropaliTeniser = new MediaPlayer();
         public MainWindow()
         {
             InitializeComponent();
@@ -19,9 +26,30 @@ namespace WpfApp1
             this.Width = 600;
             this.ResizeMode = ResizeMode.NoResize;
             CompositionTarget.Rendering += GameLoop;
+            soundPlayer.Open(new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\pewSfx.mp3", UriKind.Relative));
+            soundHit.Open(new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\umiranje.mp3", UriKind.Relative)); // Dodaj svoj fajl
+            soundPropaliTeniser.Open(new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\propaliTeniser.mp3", UriKind.Relative)); // Dodaj svoj fajl
 
+            int health = 3;
+            int healthWidth = 450; 
+            for(int i = 0; i < 3; i++)
+            {
+                Image healthContainer = new Image();
+                healthContainer.Width = 25;
+                healthContainer.Height = 25;
+                BitmapImage hearth = new BitmapImage();
+                hearth.BeginInit();
+                hearth.UriSource = new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\health.png");
+                hearth.CacheOption = BitmapCacheOption.OnLoad;
+                hearth.EndInit();
+                healthContainer.Source = hearth;
+
+                Canvas.SetLeft(healthContainer, healthWidth += 30);
+                Canvas.SetTop(healthContainer, 5);
+                radnaPovrsina.Children.Add(healthContainer);
+            }
             DispatcherTimer stvoriEntiteteTajmer = new DispatcherTimer();
-            stvoriEntiteteTajmer.Interval = TimeSpan.FromSeconds(0.5);
+            stvoriEntiteteTajmer.Interval = TimeSpan.FromSeconds(1.5);
             stvoriEntiteteTajmer.Tick += (s, e) => CrtajEntitije(); // Poziva tvoju metodu
             stvoriEntiteteTajmer.Start();
 
@@ -69,6 +97,9 @@ namespace WpfApp1
             Canvas.SetTop(novaLopta.SlikaLopte, y);
             Panel.SetZIndex(novaLopta.SlikaLopte, 10);
 
+            soundPlayer.Stop(); // Zaustavlja prethodni ako još traje
+            soundPlayer.Play();
+
             radnaPovrsina.Children.Add(novaLopta.SlikaLopte);
         }
         private DateTime _lastTick = DateTime.Now;
@@ -101,25 +132,35 @@ namespace WpfApp1
                     Canvas.SetTop(x, noviTop);
 
                     // Kreiramo HitBox za lopticu (Pravougaonik koji je prati)
-                    Rect lopticaHitBox = new Rect(currentLeft, noviTop, x.Width, x.Height);
+                    Rect lopticaHitBox = new Rect(currentLeft + 5, noviTop + 5, x.Width - 10 ,x.Height - 10);
 
                     // Proveravamo da li je ova loptica udarila bilo koji entitet
                     foreach (var y in sveSlike)
                     {
-                        if (y.Name == "entity")
+                        if (y.Name == "entity" || y.Name == "propaliTeniser")
                         {
                             double eTop = Canvas.GetTop(y);
                             double eLeft = Canvas.GetLeft(y);
 
                             // HitBox za neprijatelja
-                            Rect entityHitBox = new Rect(eLeft, eTop, y.Width, y.Height);
+                            Rect entityHitBox = new Rect(eLeft + 10,eTop + 10,y.Width - 20,y.Height - 20);
 
                             // Provera sudara
                             if (lopticaHitBox.IntersectsWith(entityHitBox))
                             {
+                                if (y.Name == "entity")
+                                {
+                                    PrikaziEksploziju(eLeft,eTop,0);
+
+                                }
+                                else
+                                {
+                                    PrikaziEksploziju(eLeft, eTop, 1);
+                                }
                                 radnaPovrsina.Children.Remove(x); // Brisi lopticu
                                 radnaPovrsina.Children.Remove(y); // Brisi entitet
                                                                   // Ovde možeš dodati: score++;
+                                
                                 break;
                             }
                         }
@@ -128,12 +169,50 @@ namespace WpfApp1
                     if (noviTop < -50) radnaPovrsina.Children.Remove(x);
                 }
                 // --- LOGIKA ZA ENTITET ---
-                else if (x.Name == "entity")
+                else if (x.Name == "entity" || x.Name == "propaliTeniser")
                 {
                     Canvas.SetTop(x, currentTop + (entityBrzina * seconds));
                     if (currentTop > 750) radnaPovrsina.Children.Remove(x);
                 }
             }
+        }
+
+        private void PrikaziEksploziju(double x, double y,int propaliTeniserFlag)
+        {
+            Image ekspozijaGif = new Image();
+            ekspozijaGif.Width = 60;
+            ekspozijaGif.Height = 60;
+
+            // Učitavanje GIF-a (Moraš imati gif u src folderu)
+            BitmapImage bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri("C:\\Users\\nluka\\OneDrive\\Desktop\\mrezeProjekat\\WpfApp1\\WpfApp1\\src\\source.gif");
+            bitmap.EndInit();
+            ekspozijaGif.Source = bitmap;
+
+            // Pozicioniranje na mestu sudara
+            Canvas.SetLeft(ekspozijaGif, x);
+            Canvas.SetTop(ekspozijaGif, y);
+            radnaPovrsina.Children.Add(ekspozijaGif);
+
+            // Zvuk eksplozije
+            if (propaliTeniserFlag == 0) { 
+                soundHit.Stop();
+                soundHit.Play();
+            } else
+            {
+                soundPropaliTeniser.Stop();
+                soundPropaliTeniser.Play();
+            }
+
+            // Tajmer koji briše GIF nakon 1 sekunde (da ne ostane na ekranu)
+            DispatcherTimer obrisiGif = new DispatcherTimer();
+            obrisiGif.Interval = TimeSpan.FromSeconds(1);
+            obrisiGif.Tick += (s, e) => {
+                radnaPovrsina.Children.Remove(ekspozijaGif);
+                obrisiGif.Stop();
+            };
+            obrisiGif.Start();
         }
 
     }

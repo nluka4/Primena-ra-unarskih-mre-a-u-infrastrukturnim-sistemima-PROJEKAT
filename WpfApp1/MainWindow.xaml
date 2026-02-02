@@ -6,8 +6,10 @@
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
         Title="Nole Space Invaders" >
-    <Canvas Name="radnaPovrsina"  MouseMove="PlayerMovement" Background="Black" MouseDown="Pucaj">
-        
+    <Canvas Name="radnaPovrsina"  MouseMove="PlayerMovement"  MouseDown="Pucaj">
+        <Canvas.Background>
+            <ImageBrush Stretch="UniformToFill" ImageSource="C:\Users\nluka\OneDrive\Desktop\mrezeProjekat\WpfApp1\WpfApp1\src\backgroundjpg.jpg" />
+        </Canvas.Background>
         <TextBlock  FontSize="50" Foreground="white" Cursor="None">
             X:<Label Name="Xkoord" Height="53" VerticalAlignment="Center" Padding="0" FontSize="50" Foreground="white" RenderTransformOrigin="0.618,0.572">0</Label>
         </TextBlock>
