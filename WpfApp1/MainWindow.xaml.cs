@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace WpfApp1
 {
@@ -19,18 +20,21 @@ namespace WpfApp1
             this.ResizeMode = ResizeMode.NoResize;
             CompositionTarget.Rendering += GameLoop;
 
-            CrtajEntitije();
+            DispatcherTimer stvoriEntiteteTajmer = new DispatcherTimer();
+            stvoriEntiteteTajmer.Interval = TimeSpan.FromSeconds(0.5);
+            stvoriEntiteteTajmer.Tick += (s, e) => CrtajEntitije(); // Poziva tvoju metodu
+            stvoriEntiteteTajmer.Start();
+
         }
 
         private void CrtajEntitije()
         {
             Random rand = new Random();
             Random randX = new Random();
-            Random randY = new Random();
 
             int index = rand.Next(0,4);
-            double x = randX.Next(300, 560);
-            double y = randY.Next(50, 700);
+            double x = randX.Next(0, 560);
+            double y = 0;
 
             Entity entity = new Entity(index);
 
@@ -71,32 +75,63 @@ namespace WpfApp1
 
         private void GameLoop(object sender, EventArgs e)
         {
-            // Izračunaj koliko je vremena prošlo (u sekundama)
+            // 1. Vremenska kalkulacija
             TimeSpan elapsed = DateTime.Now - _lastTick;
             _lastTick = DateTime.Now;
             double seconds = elapsed.TotalSeconds;
 
-            // Definiši brzinu (pikseli po sekundi)
-            double lopticaBrzina = 400; // 400px u sekundi
-            double entityBrzina = 100;  // 100px u sekundi
+            double lopticaBrzina = 400;
+            double entityBrzina = 100;
 
-            foreach (var x in radnaPovrsina.Children.OfType<Image>().ToList())
+            // Uzimamo kopiju liste dece Canvasa da izbegnemo greške pri brisanju
+            var sveSlike = radnaPovrsina.Children.OfType<Image>().ToList();
+
+            foreach (var x in sveSlike)
             {
-                double top = Canvas.GetTop(x);
-                if (double.IsNaN(top)) continue;
+                // Dobijamo trenutne koordinate (Popravka za CS0103)
+                double currentTop = Canvas.GetTop(x);
+                double currentLeft = Canvas.GetLeft(x);
 
+                if (double.IsNaN(currentTop) || double.IsNaN(currentLeft)) continue;
+
+                // --- LOGIKA ZA LOPTICU ---
                 if (x.Name == "loptica")
                 {
-                    // Pomeraj zavisi od vremena: brzina * sekunde
-                    Canvas.SetTop(x, top - (lopticaBrzina * seconds));
+                    double noviTop = currentTop - (lopticaBrzina * seconds);
+                    Canvas.SetTop(x, noviTop);
 
-                    if (top < -50) radnaPovrsina.Children.Remove(x);
+                    // Kreiramo HitBox za lopticu (Pravougaonik koji je prati)
+                    Rect lopticaHitBox = new Rect(currentLeft, noviTop, x.Width, x.Height);
+
+                    // Proveravamo da li je ova loptica udarila bilo koji entitet
+                    foreach (var y in sveSlike)
+                    {
+                        if (y.Name == "entity")
+                        {
+                            double eTop = Canvas.GetTop(y);
+                            double eLeft = Canvas.GetLeft(y);
+
+                            // HitBox za neprijatelja
+                            Rect entityHitBox = new Rect(eLeft, eTop, y.Width, y.Height);
+
+                            // Provera sudara
+                            if (lopticaHitBox.IntersectsWith(entityHitBox))
+                            {
+                                radnaPovrsina.Children.Remove(x); // Brisi lopticu
+                                radnaPovrsina.Children.Remove(y); // Brisi entitet
+                                                                  // Ovde možeš dodati: score++;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (noviTop < -50) radnaPovrsina.Children.Remove(x);
                 }
+                // --- LOGIKA ZA ENTITET ---
                 else if (x.Name == "entity")
                 {
-                    Canvas.SetTop(x, top + (entityBrzina * seconds));
-
-                    if (top > 750) radnaPovrsina.Children.Remove(x);
+                    Canvas.SetTop(x, currentTop + (entityBrzina * seconds));
+                    if (currentTop > 750) radnaPovrsina.Children.Remove(x);
                 }
             }
         }
