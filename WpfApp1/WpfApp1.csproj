@@ -8,4 +8,16 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="igrac.png" />
+    <None Remove="src\teniskaLoptica.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="igrac.png" />
+    <Resource Include="src\teniskaLoptica.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
 </Project>

@@ -5,8 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Nole Space Invaders" >
+    <Canvas Name="radnaPovrsina"  MouseMove="PlayerMovement" Background="Black" MouseDown="Pucaj">
+        
+        <TextBlock  FontSize="50" Foreground="white" Cursor="None">
+            X:<Label Name="Xkoord" Height="53" VerticalAlignment="Center" Padding="0" FontSize="50" Foreground="white" RenderTransformOrigin="0.618,0.572">0</Label>
+        </TextBlock>
+        <TextBlock Margin="0 53 0 0" FontSize="50" Foreground="white">
+            Y:<Label Name="Ykoord" Height="55" VerticalAlignment="Center" Padding="0" FontSize="50" Foreground="white" RenderTransformOrigin="0.618,0.572">0</Label>
+        </TextBlock>
 
-    </Grid>
+        <Image Stretch="Uniform" Name="player" Source="/igrac.png" HorizontalAlignment="Left" Height="64" VerticalAlignment="Top" Width="100"/>
+        <Label Content="Score: 0" HorizontalAlignment="Left" Margin="10,548,0,0" VerticalAlignment="Top" FontSize="14" FontWeight="Bold" Background="{x:Null}" Foreground="White" AutomationProperties.Name="txtScore"/>
+    </Canvas>
 </Window>
