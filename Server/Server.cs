@@ -1,6 +1,6 @@
 ﻿namespace Server
 {
-    internal class Program
+    internal class Server
     {
         static async Task Main(string[] args)
         {
@@ -8,7 +8,9 @@
             Socket? udp = null;
             var clients = new List<Socket>();
             var playerNames = new Dictionary<Socket, string>();
-            var playerInputs = new Dictionary<int, InputPacket>(); // Store latest input per player ID
+
+            //Ovo je za player inpute 
+            var playerInputs = new Dictionary<int, InputPacket>();
             var playerStates = new Dictionary<int, PlayerState>(); // Store current player states
             var lastSeen = new Dictionary<int, DateTime>(); // Track last seen time for each player
             var bullets = new List<Bullet>(); // Store active bullets
@@ -33,11 +35,11 @@
                 server.Bind(new IPEndPoint(IPAddress.Loopback, NetConstants.TcpPort));
                 server.Listen(10);
                 server.Blocking = false;
-                
+
                 udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 udp.Bind(new IPEndPoint(IPAddress.Loopback, NetConstants.UdpPort));
                 udp.Blocking = false;
-                
+
                 Console.WriteLine("🚀 Space Invaders Server");
                 Console.WriteLine($"🌐 Server started on {IPAddress.Loopback}:{NetConstants.TcpPort}");
                 Console.WriteLine("⏳ Waiting for players...\n");
@@ -54,7 +56,7 @@
                                 // Game ended, break out of loop
                                 break;
                             }
-                            
+
                             if (!gameEnded)
                             {
                                 BroadcastState(udp, playerStates, bullets, obstacles, clientEndPoints);
@@ -75,9 +77,9 @@
                     readSockets.AddRange(clients);
                     var errorSockets = new List<Socket> { server, udp };
                     errorSockets.AddRange(clients);
-                    
+
                     Socket.Select(readSockets, null, errorSockets, 1_000_000);
-                    
+
                     // Check for errors
                     if (errorSockets.Count > 0)
                     {
@@ -97,7 +99,7 @@
                             break;
                         }
                     }
-                    
+
                     // Check for incoming TCP connections
                     if (readSockets.Contains(server))
                     {
@@ -105,7 +107,7 @@
                         client.Blocking = false;
                         clients.Add(client);
                     }
-                    
+
                     // Check for UDP data
                     if (readSockets.Contains(udp))
                     {
@@ -114,13 +116,13 @@
                             byte[] udpBuffer = new byte[2048];
                             EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
                             int udpBytesReceived = udp.ReceiveFrom(udpBuffer, ref remoteEndPoint);
-                            
+
                             // Remember this client's UDP endpoint
                             clientEndPoints.Add(remoteEndPoint);
-                            
+
                             // Try to parse as text first (for PING)
                             string udpMessage = Encoding.UTF8.GetString(udpBuffer, 0, udpBytesReceived);
-                            
+
                             // Handle PING message
                             if (udpMessage == "PING")
                             {
@@ -135,19 +137,19 @@
                                     // Create buffer with exact size
                                     byte[] packetData = new byte[udpBytesReceived];
                                     Array.Copy(udpBuffer, packetData, udpBytesReceived);
-                                    
+
                                     // Deserialize PacketEnvelope
                                     var envelope = JsonBytes.FromBytes<PacketEnvelope>(packetData);
-                                    
+
                                     // Handle Input packets
                                     if (envelope.Type == PacketType.Input)
                                     {
                                         var inputPacket = JsonBytes.Unwrap<InputPacket>(envelope);
                                         playerInputs[inputPacket.PlayerId] = inputPacket;
-                                        
+
                                         // Update last seen time for this player
                                         lastSeen[inputPacket.PlayerId] = DateTime.UtcNow;
-                                        
+
                                         // Handle firing
                                         if (inputPacket.Fire && playerStates.ContainsKey(inputPacket.PlayerId))
                                         {
@@ -168,7 +170,7 @@
                             // Silently ignore UDP receive errors
                         }
                     }
-                    
+
                     // Check for data from existing TCP clients
                     var clientsToRemove = new List<Socket>();
                     foreach (var client in clients)
@@ -179,7 +181,7 @@
                             {
                                 byte[] buffer = new byte[256];
                                 int bytesReceived = client.Receive(buffer);
-                                
+
                                 if (bytesReceived == 0)
                                 {
                                     // Graceful disconnect
@@ -189,14 +191,14 @@
                                 else
                                 {
                                     string message = Encoding.UTF8.GetString(buffer, 0, bytesReceived).Trim();
-                                    
+
                                     // Check if this is a NAME message
                                     if (message.StartsWith("NAME:"))
                                     {
                                         string playerName = message.Substring(5);
                                         playerNames[client] = playerName;
                                         Console.WriteLine($"🎮 {playerName} joined the game");
-                                        
+
                                         // Ask for game mode if not set (first player)
                                         if (!gameModeSet)
                                         {
@@ -216,25 +218,25 @@
                                         else
                                         {
                                             // Second player in multiplayer - automatically use shared score, no prompt needed
-                                            
+
                                             // Initialize player state directly
                                             int playerId = playerStates.Count + 1; // Proper ID assignment (1, 2, 3...)
                                             int startX = 3 * NetConstants.MapW / 4; // Second player position
                                             int startY = NetConstants.MapH - 2;
 
                                             playerStates[playerId] = new PlayerState(playerId, playerName, startX, startY, 3, 0);
-                                            
+
                                             // Initialize last seen time
                                             lastSeen[playerId] = DateTime.UtcNow;
-                                            
+
                                             // Update game config
                                             gameConfig = new GameConfig(NetConstants.MapW, NetConstants.MapH, sharedTargetScore, gameMode);
-                                            
+
                                             // Check if we have enough players now
                                             if (playerStates.Count >= playersNeeded)
                                             {
                                                 Console.WriteLine($"🎯 Game starting with {playerStates.Count} players (Target: {sharedTargetScore})\n");
-                                                
+
                                                 // Send INIT message to ALL players
                                                 foreach (var playerClient in playerNames.Keys)
                                                 {
@@ -246,10 +248,10 @@
                                                             var playerEntry = playerStates.FirstOrDefault(p => playerNames[playerClient] == p.Value.Name);
                                                             int clientPlayerId = playerEntry.Key;
                                                             var clientPlayer = playerEntry.Value;
-                                                           
+
                                                             string initMessage = $"INIT:map={NetConstants.MapH}x{NetConstants.MapW};startX={clientPlayer.X};startY={clientPlayer.Y};udpPort={NetConstants.UdpPort};targetScore={sharedTargetScore};playerId={clientPlayerId}\n";
                                                             byte[] initBytes = Encoding.UTF8.GetBytes(initMessage);
-                                                            
+
                                                             playerClient.Send(initBytes);
                                                         }
                                                     }
@@ -277,9 +279,9 @@
                                             gameMode = selectedMode;
                                             playersNeeded = gameMode; // 1 for single, 2 for multiplayer
                                             gameModeSet = true;
-                                            
+
                                             Console.WriteLine($"🎮 Mode: {(gameMode == 1 ? "Single Player" : "Multiplayer")}");
-                                            
+
                                             // Now ask for target score
                                             string scorePrompt = "PROMPT:Enter target score (1-50): \n";
                                             byte[] scorePromptBytes = Encoding.UTF8.GetBytes(scorePrompt);
@@ -308,12 +310,12 @@
 
                                             // Update game configuration with shared target score
                                             gameConfig = new GameConfig(NetConstants.MapW, NetConstants.MapH, sharedTargetScore, gameMode);
-                                            
+
                                             // Initialize player state
                                             int playerId = playerStates.Count + 1; // Proper ID assignment (1, 2, 3...)
                                             int startX = NetConstants.MapW / 2;
                                             int startY = NetConstants.MapH - 2;
-                                            
+
                                             // For multiplayer, offset start positions
                                             if (gameMode == 2 && playerStates.Count > 0)
                                             {
@@ -321,15 +323,15 @@
                                             }
 
                                             playerStates[playerId] = new PlayerState(playerId, playerNames[client], startX, startY, 3, 0);
-                                            
+
                                             // Initialize last seen time
                                             lastSeen[playerId] = DateTime.UtcNow;
-                                            
+
                                             // Check if we have enough players for the current game mode
                                             if (playerStates.Count >= playersNeeded)
                                             {
                                                 Console.WriteLine($"🎯 Game starting with {playerStates.Count} players (Target: {sharedTargetScore})\n");
-                                                
+
                                                 // Send INIT message to ALL players
                                                 foreach (var playerClient in playerNames.Keys)
                                                 {
@@ -341,10 +343,10 @@
                                                             var playerEntry = playerStates.FirstOrDefault(p => playerNames[playerClient] == p.Value.Name);
                                                             int clientPlayerId = playerEntry.Key;
                                                             var clientPlayer = playerEntry.Value;
-                                                           
+
                                                             string initMessage = $"INIT:map={NetConstants.MapH}x{NetConstants.MapW};startX={clientPlayer.X};startY={clientPlayer.Y};udpPort={NetConstants.UdpPort};targetScore={sharedTargetScore};playerId={clientPlayerId}\n";
                                                             byte[] initBytes = Encoding.UTF8.GetBytes(initMessage);
-                                                            
+
                                                             playerClient.Send(initBytes);
                                                         }
                                                     }
@@ -357,7 +359,7 @@
                                             else if (gameMode == 2)
                                             {
                                                 // Multiplayer mode - waiting for more players
-                                                string waitMessage = $"WAIT:Waiting for more players ({playerStates.Count}/{playersNeeded})... Target score: {sharedTargetScore}\n";
+                                                string waitMessage = $"WAIT:Cekamo ostale igrace({playerStates.Count}/{playersNeeded})... Target score: {sharedTargetScore}\n";
                                                 byte[] waitBytes = Encoding.UTF8.GetBytes(waitMessage);
                                                 client.Send(waitBytes);
                                             }
@@ -365,7 +367,7 @@
                                         else
                                         {
                                             // Invalid score, ask again
-                                            string errorPrompt = "ERROR:Invalid score! Enter target score (1-50): \n";
+                                            string errorPrompt = "ERROR:Unesti poene u rasponu (1-50): \n";
                                             byte[] errorBytes = Encoding.UTF8.GetBytes(errorPrompt);
                                             client.Send(errorBytes);
                                         }
@@ -379,7 +381,7 @@
                             }
                         }
                     }
-                    
+
                     // Remove disconnected clients
                     foreach (var client in clientsToRemove)
                     {
@@ -415,16 +417,16 @@
             {
                 return false;
             }
-            
+
             // Check for player timeouts (20 seconds without input)
             var currentTime = DateTime.UtcNow;
             var timeoutThreshold = TimeSpan.FromSeconds(20);
-            
+
             foreach (var playerKv in playerStates.ToList()) // ToList to avoid modification during enumeration
             {
                 int playerId = playerKv.Key;
                 var player = playerKv.Value;
-                
+
                 if (lastSeen.ContainsKey(playerId))
                 {
                     var timeSinceLastSeen = currentTime - lastSeen[playerId];
@@ -436,31 +438,38 @@
                     }
                 }
             }
-            
+
             // Process each player's latest input
             foreach (var input in playerInputs)
             {
                 int playerId = input.Key;
                 var inputPacket = input.Value;
-                
+
                 // Check if player state exists
                 if (!playerStates.ContainsKey(playerId))
                 {
                     continue; // Skip if player doesn't have a state yet
                 }
-                
+
                 var currentState = playerStates[playerId];
-                
+
                 // Apply movement input: Move ∈ {-1, 0, +1}
                 int newX = currentState.X + inputPacket.Move;
-                
+
                 // Clamp X position to map boundaries [0, MapW-1]
                 newX = Math.Max(0, Math.Min(newX, NetConstants.MapW - 1));
-                
+
                 // Update player state with new position
-                playerStates[playerId] = currentState with { X = newX };
+                playerStates[playerId] = new PlayerState(
+                    currentState.Id,
+                    currentState.Name,
+                    newX,
+                    currentState.Y,
+                    currentState.Lives,
+                    currentState.Score
+                );
             }
-            
+
             // Handle bullet-obstacle collisions AFTER moving bullets and obstacles
             var bulletsToRemove = new HashSet<int>();
             var obstaclesToRemove = new HashSet<int>();
@@ -469,10 +478,10 @@
             for (int i = bullets.Count - 1; i >= 0; i--)
             {
                 var bullet = bullets[i];
-                
+
                 // Move bullet up
-                var newBullet = bullet with { Y = bullet.Y - 1 };
-                
+                var newBullet = new Bullet(bullet.X, bullet.Y - 1, bullet.FromPlayerId);
+
                 // Remove bullet if it goes off screen
                 if (newBullet.Y < 0)
                 {
@@ -495,25 +504,32 @@
             for (int i = obstacles.Count - 1; i >= 0; i--)
             {
                 var obstacle = obstacles[i];
-                
+
                 // Move obstacle down only every 2 ticks
-                var newObstacle = shouldMoveObstacles ? obstacle with { Y = obstacle.Y + 1 } : obstacle;
-                
+                var newObstacle = shouldMoveObstacles ? new Obstacle(obstacle.X, obstacle.Y + 1) : obstacle;
+
                 // Check for player-obstacle collisions
                 bool hitPlayer = false;
                 foreach (var playerKv in playerStates.ToList())
                 {
                     var player = playerKv.Value;
-                    
+
                     // Check if player and obstacle are at the same position
                     if (player.X == newObstacle.X && player.Y == newObstacle.Y)
                     {
                         // Player hit by obstacle - lose a life
                         if (player.Lives > 0)
                         {
-                            var updatedPlayer = player with { Lives = player.Lives - 1 };
+                            var updatedPlayer = new PlayerState(
+                                player.Id,
+                                player.Name,
+                                player.X,
+                                player.Y,
+                                player.Lives - 1,
+                                player.Score
+                            );
                             playerStates[playerKv.Key] = updatedPlayer;
-                            
+
                             // Check if player has no lives left
                             if (updatedPlayer.Lives <= 0)
                             {
@@ -522,14 +538,14 @@
                                 return true; // Exit update loop as game has ended
                             }
                         }
-                        
+
                         // Remove the obstacle that hit the player
                         obstacles.RemoveAt(i);
                         hitPlayer = true;
                         break; // Exit player loop since obstacle is removed
                     }
                 }
-                
+
                 if (!hitPlayer)
                 {
                     // Check if obstacle reached bottom of map (only if it moved)
@@ -549,34 +565,41 @@
             for (int b = 0; b < bullets.Count; b++)
             {
                 if (bulletsToRemove.Contains(b)) continue;
-                
+
                 var bullet = bullets[b];
-                
+
                 for (int o = 0; o < obstacles.Count; o++)
                 {
                     if (obstaclesToRemove.Contains(o)) continue;
-                    
+
                     var obstacle = obstacles[o];
-                    
+
                     // Enhanced collision detection:
                     // 1. Exact position match (bullet.X == obstacle.X && bullet.Y == obstacle.Y)
                     // 2. Bullet "passes through" obstacle (same X, bullet Y < obstacle Y)
                     bool exactHit = (bullet.X == obstacle.X && bullet.Y == obstacle.Y);
                     bool passThroughHit = (bullet.X == obstacle.X && bullet.Y < obstacle.Y && bullet.Y >= obstacle.Y - 1);
-                    
+
                     if (exactHit || passThroughHit)
                     {
                         // Mark for removal
                         bulletsToRemove.Add(b);
                         obstaclesToRemove.Add(o);
-                        
+
                         // Award score to player
                         if (playerStates.ContainsKey(bullet.FromPlayerId))
                         {
                             var player = playerStates[bullet.FromPlayerId];
-                            var updatedPlayer = player with { Score = player.Score + 1 };
+                            var updatedPlayer = new PlayerState(
+                                player.Id,
+                                player.Name,
+                                player.X,
+                                player.Y,
+                                player.Lives,
+                                player.Score + 1
+                            );
                             playerStates[bullet.FromPlayerId] = updatedPlayer;
-                            
+
                             // Check for target score reached
                             if (updatedPlayer.Score >= gameConfig.TargetScore)
                             {
@@ -585,26 +608,26 @@
                                 return true; // Exit update loop as game has ended
                             }
                         }
-                        
+
                         break; // One collision per bullet
                     }
                 }
             }
-            
+
             // Remove collided bullets and obstacles (in reverse order to maintain indices)
             var bulletIndices = bulletsToRemove.OrderByDescending(x => x).ToList();
             var obstacleIndices = obstaclesToRemove.OrderByDescending(x => x).ToList();
-            
+
             foreach (var bulletIndex in bulletIndices)
             {
                 bullets.RemoveAt(bulletIndex);
             }
-            
+
             foreach (var obstacleIndex in obstacleIndices)
             {
                 obstacles.RemoveAt(obstacleIndex);
             }
-            
+
             // Handle obstacle spawning (every 6 ticks instead of 3) - only if players are connected
             if (playerStates.Count > 0)
             {
@@ -612,14 +635,14 @@
                 if (obstacleSpawnTimer >= 6)
                 {
                     obstacleSpawnTimer = 0;
-                    
+
                     // Spawn obstacle at random X position, Y=0 (top of map)
                     int randomX = random.Next(0, NetConstants.MapW);
                     var obstacle = new Obstacle(randomX, 0);
                     obstacles.Add(obstacle);
                 }
             }
-            
+
             // Clear processed inputs
             playerInputs.Clear();
             return false; // Game continues
@@ -631,23 +654,23 @@
             {
                 return; // No clients or players to broadcast to
             }
-            
+
             try
             {
                 // Create arrays for StatePacket
                 var players = playerStates.Values.ToArray();
                 var obstaclesArray = obstacles.ToArray();
                 var bulletsArray = bullets.ToArray();
-                
+
                 // Create StatePacket
                 var statePacket = new StatePacket(players, obstaclesArray, bulletsArray);
-                
+
                 // Wrap in PacketEnvelope
                 var envelope = JsonBytes.Wrap(PacketType.State, statePacket);
-                
+
                 // Serialize to bytes
                 byte[] data = JsonBytes.ToBytes(envelope);
-                
+
                 // Send to all registered UDP clients
                 foreach (var clientEndPoint in clientEndPoints)
                 {
@@ -670,7 +693,7 @@
         static void EndGame(string reason, Dictionary<int, PlayerState> playerStates, Socket udpSocket, HashSet<EndPoint> clientEndPoints, Socket? tcpServer = null)
         {
             Console.WriteLine("\n🏁 GAME OVER");
-            
+
             string gameEndMessage = reason switch
             {
                 "targetScore" => "🎯 Victory! Target score reached!",
@@ -679,7 +702,7 @@
                 _ => "Game ended"
             };
             Console.WriteLine($"   {gameEndMessage}");
-            
+
             Console.WriteLine("\n📊 Final Scores:");
             foreach (var playerKv in playerStates.OrderByDescending(p => p.Value.Score))
             {
@@ -687,14 +710,14 @@
                 string medal = playerStates.Count > 1 && playerKv.Equals(playerStates.OrderByDescending(p => p.Value.Score).First()) ? "🥇 " : "   ";
                 Console.WriteLine($"{medal}{player.Name}: {player.Score} points, {player.Lives} lives");
             }
-            
+
             try
             {
                 // Send GameOver packet to all clients
                 var gameOverPayload = new GameOverPayload(playerStates.Values.ToArray(), reason);
                 var envelope = JsonBytes.Wrap(PacketType.GameOver, gameOverPayload);
                 byte[] data = JsonBytes.ToBytes(envelope);
-                
+
                 foreach (var clientEndPoint in clientEndPoints)
                 {
                     try
@@ -706,10 +729,10 @@
                         // Silently ignore GameOver send failures
                     }
                 }
-                
+
                 // Give clients time to receive the message
                 Thread.Sleep(100);
-                
+
                 // Close sockets
                 try
                 {
@@ -725,7 +748,7 @@
             {
                 // Silently ignore EndGame errors
             }
-            
+
             Console.WriteLine("\n👋 Server shutdown complete");
         }
     }
